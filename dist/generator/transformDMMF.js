@@ -8,15 +8,8 @@ exports.transformEnum = void 0;
 const transformField = field => {
   var _field$default;
   const deps = new Set();
-  const tokens = [field.name + ':'];
+  let tokens = [field.name + ':'];
   let inputTokens = [];
-  if (field.kind === 'object' || field.isList) {
-    return {
-      str: '',
-      strInput: '',
-      deps
-    };
-  }
   if (['Int', 'Float', 'Decimal'].includes(field.type)) {
     tokens.push('t.Number()');
   } else if (['BigInt'].includes(field.type)) {
@@ -25,6 +18,20 @@ const transformField = field => {
     tokens.push('t.String()');
   } else if (field.type === 'Boolean') {
     tokens.push('t.Boolean()');
+  } else if (field.kind !== 'object') {
+    tokens.push(`::${field.type}::`);
+    deps.add(field.type);
+  }
+  if (field.isList && field.kind !== 'object') {
+    tokens.splice(1, 0, 't.Array(');
+    tokens.splice(tokens.length, 0, ')');
+  }
+  if (field.kind === 'object') {
+    return {
+      str: '',
+      strInput: '',
+      deps
+    };
   }
   inputTokens = [...tokens];
 
@@ -82,7 +89,7 @@ const transformModel = (model, models) => {
 };
 const transformEnum = enm => {
   const values = enm.values.map(v => `${v.name}: t.Literal('${v.name}'),\n`).join('');
-  return [`export const ${enm.name} = t.KeyOf(`, 't.Object({', values, '})', ');'].join('\n');
+  return [`export const ${enm.name} = t.KeyOf(`, 't.Object({', values, '})', ')'].join('\n');
 };
 exports.transformEnum = transformEnum;
 function transformDMMF(dmmf) {

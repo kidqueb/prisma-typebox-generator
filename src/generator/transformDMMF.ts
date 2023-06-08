@@ -2,16 +2,8 @@ import type { DMMF } from '@prisma/generator-helper';
 
 const transformField = (field: DMMF.Field) => {
   const deps = new Set();
-  const tokens = [field.name + ':'];
+  let tokens = [field.name + ':'];
   let inputTokens = [];
-
-  if (field.kind === 'object' || field.isList) {
-    return {
-      str: '',
-      strInput: '',
-      deps,
-    };
-  }
 
   if (['Int', 'Float', 'Decimal'].includes(field.type)) {
     tokens.push('t.Number()');
@@ -21,6 +13,22 @@ const transformField = (field: DMMF.Field) => {
     tokens.push('t.String()');
   } else if (field.type === 'Boolean') {
     tokens.push('t.Boolean()');
+  } else if (field.kind !== 'object') {
+    tokens.push(`::${field.type}::`);
+    deps.add(field.type);
+  }
+
+  if (field.isList && field.kind !== 'object') {
+    tokens.splice(1, 0, 't.Array(');
+    tokens.splice(tokens.length, 0, ')');
+  }
+
+  if (field.kind === 'object') {
+    return {
+      str: '',
+      strInput: '',
+      deps,
+    };
   }
 
   inputTokens = [...tokens];
@@ -104,7 +112,7 @@ export const transformEnum = (enm: DMMF.DatamodelEnum) => {
     't.Object({',
     values,
     '})',
-    ');',
+    ')',
   ].join('\n');
 };
 

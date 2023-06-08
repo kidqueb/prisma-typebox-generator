@@ -1,5 +1,4 @@
 import { t } from "elysia";
-import { Role } from "./Role";
 
 export const User = t.Object({
   id: t.Number(),
@@ -9,7 +8,7 @@ export const User = t.Object({
   is18: t.Optional(t.Boolean()),
   name: t.Optional(t.String()),
   successorId: t.Optional(t.Number()),
-  role: t.Optional(Role),
+  role: t.Optional(),
   biography: t.String(),
   decimal: t.Number(),
   biginteger: t.Integer(),

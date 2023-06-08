@@ -5,7 +5,7 @@ const transformField = (field: DMMF.Field) => {
   const tokens = [field.name + ':'];
   let inputTokens = [];
 
-  if (field.isList) {
+  if (field.kind === 'object' || field.isList) {
     return {
       str: '',
       strInput: '',
@@ -21,14 +21,6 @@ const transformField = (field: DMMF.Field) => {
     tokens.push('t.String()');
   } else if (field.type === 'Boolean') {
     tokens.push('t.Boolean()');
-  } else {
-    tokens.push(`::${field.type}::`);
-    deps.add(field.type);
-  }
-
-  if (field.isList) {
-    tokens.splice(1, 0, 't.Array(');
-    tokens.splice(tokens.length, 0, ')');
   }
 
   inputTokens = [...tokens];

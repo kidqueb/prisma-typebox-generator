@@ -118,7 +118,7 @@ function transformDMMF(dmmf) {
       if (raw.match(re)) {
         raw = raw.replace(re, enm.name);
         inputRaw = inputRaw.replace(re, enm.name);
-        importStatements.add(`import { ${enm.name} } from './${enm.name}'`);
+        importStatements.add(`import { ${enm.name} } from './${enm.name}.js'`);
       }
     });
     return {

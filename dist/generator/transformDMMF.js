@@ -7,8 +7,16 @@ exports.transformDMMF = transformDMMF;
 exports.transformEnum = void 0;
 const transformField = field => {
   var _field$default;
+  const deps = new Set();
   const tokens = [field.name + ':'];
   let inputTokens = [];
+  if (field.isList) {
+    return {
+      str: '',
+      strInput: '',
+      deps
+    };
+  }
   if (['Int', 'Float', 'Decimal'].includes(field.type)) {
     tokens.push('t.Number()');
   } else if (['BigInt'].includes(field.type)) {
@@ -19,6 +27,7 @@ const transformField = field => {
     tokens.push('t.Boolean()');
   } else {
     tokens.push(`::${field.type}::`);
+    deps.add(field.type);
   }
   if (field.isList) {
     tokens.splice(1, 0, 't.Array(');
@@ -39,25 +48,31 @@ const transformField = field => {
   }
   return {
     str: tokens.join(' ').concat('\n'),
-    strInput: inputTokens.join(' ').concat('\n')
+    strInput: inputTokens.join(' ').concat('\n'),
+    deps
   };
 };
 const transformFields = fields => {
+  let dependencies = new Set();
   const _fields = [];
   const _inputFields = [];
   fields.map(transformField).forEach(field => {
     _fields.push(field.str);
     _inputFields.push(field.strInput);
+    [...field.deps].forEach(d => {
+      dependencies.add(d);
+    });
   });
   return {
+    dependencies,
     rawString: _fields.filter(f => !!f).join(','),
     rawInputString: _inputFields.filter(f => !!f).join(',')
   };
 };
 const transformModel = (model, models) => {
   const fields = transformFields(model.fields);
-  let raw = [`${models ? '' : `export const ${model.name} = `}Type.Object({\n\t`, fields.rawString, '})'].join('\n');
-  let inputRaw = [`${models ? '' : `export const ${model.name}Input = `}Type.Object({\n\t`, fields.rawInputString, '})'].join('\n');
+  let raw = [`${models ? '' : `export const ${model.name} = `}t.Object({\n\t`, fields.rawString, '})'].join('\n');
+  let inputRaw = [`${models ? '' : `export const ${model.name}Input = `}t.Object({\n\t`, fields.rawInputString, '})'].join('\n');
   if (Array.isArray(models)) {
     models.forEach(md => {
       const re = new RegExp(`.+::${md.name}.+\n`, 'gm');
@@ -68,12 +83,13 @@ const transformModel = (model, models) => {
   }
   return {
     raw,
-    inputRaw
+    inputRaw,
+    deps: fields.dependencies
   };
 };
 const transformEnum = enm => {
   const values = enm.values.map(v => `${v.name}: t.Literal('${v.name}'),\n`).join('');
-  return [`export const ${enm.name}Const = {`, values, '}\n', `export const ${enm.name} = t.KeyOf(Type.Object(${enm.name}Const))\n`].join('\n');
+  return [`export const ${enm.name} = t.KeyOf(`, 't.Object({', values, '})', ');'].join('\n');
 };
 exports.transformEnum = transformEnum;
 function transformDMMF(dmmf) {
@@ -85,8 +101,18 @@ function transformDMMF(dmmf) {
   return [...models.map(model => {
     let {
       raw,
-      inputRaw
+      inputRaw,
+      deps
     } = transformModel(model);
+    [...deps].forEach(d => {
+      const depsModel = models.find(m => m.name === d);
+      if (depsModel) {
+        const replacer = transformModel(depsModel, models);
+        const re = new RegExp(`::${d}::`, 'gm');
+        raw = raw.replace(re, replacer.raw);
+        inputRaw = inputRaw.replace(re, replacer.inputRaw);
+      }
+    });
     enums.forEach(enm => {
       const re = new RegExp(`::${enm.name}::`, 'gm');
       if (raw.match(re)) {
@@ -97,8 +123,8 @@ function transformDMMF(dmmf) {
     });
     return {
       name: model.name,
-      rawString: [[...importStatements].join('\n'), raw, `export type ${model.name}Type = Static<typeof ${model.name}>`].join('\n\n'),
-      inputRawString: [[...importStatements].join('\n'), inputRaw, `export type ${model.name}InputType = Static<typeof ${model.name}Input>`].join('\n\n')
+      rawString: [[...importStatements].join('\n'), raw].join('\n\n'),
+      inputRawString: ''
     };
   }), ...enums.map(enm => {
     return {

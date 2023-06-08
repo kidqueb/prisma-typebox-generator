@@ -1,25 +1,16 @@
-import { Type, Static } from "@sinclair/typebox";
+import { t } from "elysia";
 import { Role } from "./Role";
 
-export const User = Type.Object({
-  id: Type.Number(),
-  createdAt: Type.Optional(Type.String()),
-  email: Type.String(),
-  weight: Type.Optional(Type.Number()),
-  is18: Type.Optional(Type.Boolean()),
-  name: Type.Optional(Type.String()),
-  successorId: Type.Optional(Type.Number()),
-  role: Type.Optional(Role),
-  posts: Type.Array(
-    Type.Object({
-      id: Type.Number(),
-      userId: Type.Optional(Type.Number()),
-    })
-  ),
-  keywords: Type.Array(Type.String()),
-  biography: Type.String(),
-  decimal: Type.Number(),
-  biginteger: Type.Integer(),
+export const User = t.Object({
+  id: t.Number(),
+  createdAt: t.Optional(t.String()),
+  email: t.String(),
+  weight: t.Optional(t.Number()),
+  is18: t.Optional(t.Boolean()),
+  name: t.Optional(t.String()),
+  successorId: t.Optional(t.Number()),
+  role: t.Optional(Role),
+  biography: t.String(),
+  decimal: t.Number(),
+  biginteger: t.Integer(),
 });
-
-export type UserType = Static<typeof User>;

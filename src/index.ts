@@ -1,9 +1,9 @@
 import { generatorHandler } from '@prisma/generator-helper';
-import { transformDMMF } from './generator/transformDMMF';
+import { parseEnvValue } from '@prisma/sdk';
 import * as fs from 'fs';
 import * as path from 'path';
-import { parseEnvValue } from '@prisma/sdk';
 import prettier from 'prettier';
+import { transformDMMF } from './generator/transformDMMF';
 
 generatorHandler({
   onManifest() {
@@ -14,13 +14,9 @@ generatorHandler({
   },
   async onGenerate(options) {
     const payload = transformDMMF(options.dmmf);
-    if (options.generator.output) {
-      const outputDir =
-        // This ensures previous version of prisma are still supported
-        typeof options.generator.output === 'string'
-          ? (options.generator.output as unknown as string)
-          : // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-            parseEnvValue(options.generator.output);
+    if (typeof options.generator.output === 'string') {
+      const outputDir = parseEnvValue(options.generator.output);
+
       try {
         await fs.promises.mkdir(outputDir, {
           recursive: true,
